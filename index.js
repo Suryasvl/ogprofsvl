@@ -14,7 +14,26 @@ const client = new Client({
 });
 
 // Bot configuration
-const PREFIX = 's';
+let PREFIX = 's';
+let guildPrefixes = {};
+
+// Load guild-specific prefixes
+function loadPrefixes() {
+    const configPath = path.join(__dirname, 'config.json');
+    if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.guilds) {
+            guildPrefixes = config.guilds;
+        }
+    }
+}
+
+// Get prefix for a specific guild
+function getPrefix(guildId) {
+    return guildPrefixes[guildId]?.prefix || PREFIX;
+}
+
+loadPrefixes();
 
 // Collections to store commands
 client.slashCommands = new Collection();
@@ -109,11 +128,17 @@ client.on('interactionCreate', async interaction => {
 
 // Handle prefix commands
 client.on('messageCreate', async message => {
-    // Ignore bots and messages without prefix
-    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+    // Ignore bots
+    if (message.author.bot) return;
+
+    // Get guild-specific prefix
+    const guildPrefix = getPrefix(message.guild?.id);
+    
+    // Check if message starts with prefix
+    if (!message.content.startsWith(guildPrefix)) return;
 
     // Parse command and arguments
-    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const args = message.content.slice(guildPrefix.length).trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
 
     const command = client.prefixCommands.get(commandName);
