@@ -381,6 +381,99 @@ const commandsData = {
                 await interaction.reply({ embeds: [embed] });
             }
         }
+    },
+    
+    mute: {
+        description: 'Mute a user',
+        usage: `${PREFIX}mute @user [reason]`,
+        permissions: ['ModerateMembers'],
+        execute: async (interaction, args, isSlash = true) => {
+            const hasPermission = interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers);
+            
+            if (!hasPermission) {
+                const errorMsg = 'You do not have permission to mute members!';
+                if (isSlash) {
+                    return await interaction.reply({ content: errorMsg, ephemeral: true });
+                } else {
+                    return await interaction.reply(errorMsg);
+                }
+            }
+            
+            let user, reason;
+            
+            if (isSlash) {
+                user = interaction.options.getUser('user');
+                reason = interaction.options.getString('reason') || 'No reason provided';
+            } else {
+                user = interaction.mentions.users.first();
+                reason = args.slice(1).join(' ') || 'No reason provided';
+                
+                if (!user) {
+                    return await interaction.reply('Please mention a user to mute!');
+                }
+            }
+            
+            const member = await interaction.guild.members.fetch(user.id);
+            
+            if (!member.moderatable) {
+                const errorMsg = 'I cannot mute this user!';
+                if (isSlash) {
+                    return await interaction.reply({ content: errorMsg, ephemeral: true });
+                } else {
+                    return await interaction.reply(errorMsg);
+                }
+            }
+            
+            await member.timeout(10 * 60 * 1000, reason); // 10 minutes timeout
+            const successMsg = `${user.username} has been muted for 10 minutes. Reason: ${reason}`;
+            
+            if (isSlash) {
+                await interaction.reply(successMsg);
+            } else {
+                await interaction.reply(successMsg);
+            }
+        }
+    },
+    
+    unmute: {
+        description: 'Unmute a user',
+        usage: `${PREFIX}unmute @user`,
+        permissions: ['ModerateMembers'],
+        execute: async (interaction, args, isSlash = true) => {
+            const hasPermission = interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers);
+            
+            if (!hasPermission) {
+                const errorMsg = 'You do not have permission to unmute members!';
+                if (isSlash) {
+                    return await interaction.reply({ content: errorMsg, ephemeral: true });
+                } else {
+                    return await interaction.reply(errorMsg);
+                }
+            }
+            
+            let user;
+            
+            if (isSlash) {
+                user = interaction.options.getUser('user');
+            } else {
+                user = interaction.mentions.users.first();
+                
+                if (!user) {
+                    return await interaction.reply('Please mention a user to unmute!');
+                }
+            }
+            
+            const member = await interaction.guild.members.fetch(user.id);
+            
+            await member.timeout(null);
+            const successMsg = `${user.username} has been unmuted.`;
+            
+            if (isSlash) {
+                await interaction.reply(successMsg);
+            } else {
+                await interaction.reply(successMsg);
+            }
+        }
     }
 };
 
@@ -460,7 +553,27 @@ const slashCommands = [
         .addIntegerOption(option =>
             option.setName('sides')
                 .setDescription('Number of sides on the dice')
-                .setRequired(false))
+                .setRequired(false)),
+    
+    new SlashCommandBuilder()
+        .setName('mute')
+        .setDescription('Mute a user')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('User to mute')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('reason')
+                .setDescription('Reason for mute')
+                .setRequired(false)),
+    
+    new SlashCommandBuilder()
+        .setName('unmute')
+        .setDescription('Unmute a user')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('User to unmute')
+                .setRequired(true))
 ];
 
 // Store commands in collections
