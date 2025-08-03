@@ -140,7 +140,7 @@ client.on('messageCreate', async message => {
     await checkMessage(message);
     // ✅ DND Mention Check
     try {
-        const dndPath = path.join(__dirname, 'commands', 'slash', 'dnd.json');
+        const dndPath = path.join(__dirname, 'dnd.json');
         if (fs.existsSync(dndPath)) {
             const dndData = JSON.parse(fs.readFileSync(dndPath, 'utf8'));
 
@@ -148,7 +148,10 @@ client.on('messageCreate', async message => {
                 const endTime = dndData[user.id];
                 if (endTime && Date.now() < endTime) {
                     const remaining = Math.ceil((endTime - Date.now()) / 60000);
-                    message.reply(`🔕 <@${user.id}> is in DND mode. Try again in ${remaining} minutes.`);
+                    const timeLeft = remaining > 60 ? 
+                        `${Math.ceil(remaining / 60)} hour(s)` : 
+                        `${remaining} minute(s)`;
+                    message.reply(`🔕 <@${user.id}> is in DND mode. Please wait ${timeLeft} before messaging them again.`);
                 }
             });
         }
@@ -156,9 +159,43 @@ client.on('messageCreate', async message => {
         console.error('DND check failed:', err);
     }
 
+    // ✅ Sticky Message Handler
+    try {
+        const stickyPath = path.join(__dirname, 'sticky.json');
+        if (fs.existsSync(stickyPath)) {
+            const stickyData = JSON.parse(fs.readFileSync(stickyPath, 'utf8'));
+            const channelSticky = stickyData[message.channel.id];
+
+            if (channelSticky && channelSticky.active) {
+                // Delete old sticky message
+                if (channelSticky.messageId) {
+                    try {
+                        const oldStickyMessage = await message.channel.messages.fetch(channelSticky.messageId);
+                        await oldStickyMessage.delete();
+                    } catch (error) {
+                        // Old message might already be deleted
+                    }
+                }
+
+                // Post new sticky message after a short delay
+                setTimeout(async () => {
+                    try {
+                        const newStickyMessage = await message.channel.send(`📌 **STICKY:** ${channelSticky.content}`);
+                        stickyData[message.channel.id].messageId = newStickyMessage.id;
+                        fs.writeFileSync(stickyPath, JSON.stringify(stickyData, null, 2));
+                    } catch (error) {
+                        console.error('Failed to send sticky message:', error);
+                    }
+                }, 2000);
+            }
+        }
+    } catch (err) {
+        console.error('Sticky message handler failed:', err);
+    }
+
     // Get guild-specific prefix
     const guildPrefix = getPrefix(message.guild?.id);
-    
+
     // Check if message starts with prefix
     if (!message.content.startsWith(guildPrefix)) return;
 
