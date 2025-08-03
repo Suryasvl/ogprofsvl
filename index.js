@@ -138,6 +138,23 @@ client.on('messageCreate', async message => {
 
     // Run moderation checks first
     await checkMessage(message);
+    // ✅ DND Mention Check
+    try {
+        const dndPath = path.join(__dirname, 'commands', 'slash', 'dnd.json');
+        if (fs.existsSync(dndPath)) {
+            const dndData = JSON.parse(fs.readFileSync(dndPath, 'utf8'));
+
+            message.mentions.users.forEach((user) => {
+                const endTime = dndData[user.id];
+                if (endTime && Date.now() < endTime) {
+                    const remaining = Math.ceil((endTime - Date.now()) / 60000);
+                    message.reply(`🔕 <@${user.id}> is in DND mode. Try again in ${remaining} minutes.`);
+                }
+            });
+        }
+    } catch (err) {
+        console.error('DND check failed:', err);
+    }
 
     // Get guild-specific prefix
     const guildPrefix = getPrefix(message.guild?.id);
