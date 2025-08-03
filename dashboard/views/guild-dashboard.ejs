@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guild Dashboard - Discord Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot"></i> Bot Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">
+                    <i class="fas fa-arrow-left"></i> Back to Servers
+                </a>
+                <a class="nav-link" href="/logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <h2 class="mb-4">
+            <i class="fas fa-cog"></i> Server Configuration
+        </h2>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-keyboard"></i> Bot Prefix</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="prefixForm">
+                            <div class="mb-3">
+                                <label for="prefix" class="form-label">Command Prefix</label>
+                                <input type="text" class="form-control" id="prefix" name="prefix" 
+                                       value="<%= config.prefix || 's' %>" maxlength="5">
+                                <div class="form-text">The prefix users need to type before commands (e.g., "s" for "shelp")</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Prefix
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5><i class="fas fa-shield-alt"></i> Auto Moderation</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="automodForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="antiLink" 
+                                               <%= config.automod?.antiLink ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="antiLink">
+                                            <strong>Anti-Link Protection</strong>
+                                        </label>
+                                        <div class="form-text">Automatically delete messages containing links</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="badWords" 
+                                               <%= config.automod?.badWords ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="badWords">
+                                            <strong>Bad Words Filter</strong>
+                                        </label>
+                                        <div class="form-text">Filter inappropriate language</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="antiSpam" 
+                                               <%= config.automod?.antiSpam ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="antiSpam">
+                                            <strong>Anti-Spam</strong>
+                                        </label>
+                                        <div class="form-text">Prevent message spam</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="antiCaps" 
+                                               <%= config.automod?.antiCaps ? 'checked' : '' %>>
+                                        <label class="form-check-label" for="antiCaps">
+                                            <strong>Anti-Caps</strong>
+                                        </label>
+                                        <div class="form-text">Prevent excessive capital letters</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Auto-Moderation Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-info-circle"></i> Quick Commands</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Moderation Commands:</strong></p>
+                        <ul class="list-unstyled">
+                            <li><code>/kick @user</code> - Kick a user</li>
+                            <li><code>/ban @user</code> - Ban a user</li>
+                            <li><code>/mute @user</code> - Mute a user</li>
+                            <li><code>/warn @user</code> - Warn a user</li>
+                            <li><code>/lock</code> - Lock channel</li>
+                            <li><code>/unlock</code> - Unlock channel</li>
+                        </ul>
+                        
+                        <p><strong>Auto-Mod Commands:</strong></p>
+                        <ul class="list-unstyled">
+                            <li><code>/automod status</code> - View settings</li>
+                            <li><code>/automod toggle</code> - Toggle features</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Handle prefix form submission
+        document.getElementById('prefixForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const prefix = document.getElementById('prefix').value;
+            
+            try {
+                const response = await fetch(`/api/guild/<%= guildId %>/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prefix: prefix })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Prefix updated successfully!');
+                } else {
+                    alert('Error updating prefix');
+                }
+            } catch (error) {
+                alert('Error updating prefix');
+            }
+        });
+
+        // Handle automod form submission
+        document.getElementById('automodForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const automod = {
+                antiLink: document.getElementById('antiLink').checked,
+                badWords: document.getElementById('badWords').checked,
+                antiSpam: document.getElementById('antiSpam').checked,
+                antiCaps: document.getElementById('antiCaps').checked
+            };
+            
+            try {
+                const response = await fetch(`/api/guild/<%= guildId %>/config`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ automod: automod })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Auto-moderation settings updated successfully!');
+                } else {
+                    alert('Error updating auto-moderation settings');
+                }
+            } catch (error) {
+                alert('Error updating auto-moderation settings');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Discord Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-robot"></i> Bot Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : '/default-avatar.png' %>" 
+                         class="rounded-circle me-2" width="24" height="24">
+                    <%= user.username %>
+                </span>
+                <a class="nav-link" href="/logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <h2 class="mb-4">
+            <i class="fas fa-server"></i> Select a Server
+        </h2>
+        
+        <div class="row">
+            <% if (guilds && guilds.length > 0) { %>
+                <% guilds.forEach(guild => { %>
+                    <% if (guild.permissions && (guild.permissions & 8) === 8) { %> <!-- Check for ADMINISTRATOR permission -->
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <% if (guild.icon) { %>
+                                        <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png" 
+                                             class="rounded-circle mb-3" width="64" height="64">
+                                    <% } else { %>
+                                        <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                                             style="width: 64px; height: 64px;">
+                                            <i class="fas fa-server text-white"></i>
+                                        </div>
+                                    <% } %>
+                                    <h5 class="card-title"><%= guild.name %></h5>
+                                    <p class="text-muted small">ID: <%= guild.id %></p>
+                                    <a href="/dashboard/guild/<%= guild.id %>" class="btn btn-primary">
+                                        <i class="fas fa-cog"></i> Manage
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <% } %>
+                <% }) %>
+            <% } else { %>
+                <div class="col-12">
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle"></i>
+                        No servers found where you have administrator permissions.
+                        <br><br>
+                        <a href="https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands" 
+                           class="btn btn-primary" target="_blank">
+                            <i class="fas fa-plus"></i> Invite Bot to Server
+                        </a>
+                    </div>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

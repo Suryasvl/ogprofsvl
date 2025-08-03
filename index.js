@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const { checkMessage } = require('./moderation');
 
 // Create a new client instance
 const client = new Client({
@@ -130,6 +131,12 @@ client.on('interactionCreate', async interaction => {
 client.on('messageCreate', async message => {
     // Ignore bots
     if (message.author.bot) return;
+
+    // Skip DMs
+    if (!message.guild) return;
+
+    // Run moderation checks first
+    await checkMessage(message);
 
     // Get guild-specific prefix
     const guildPrefix = getPrefix(message.guild?.id);
