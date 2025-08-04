@@ -244,6 +244,25 @@ process.on('SIGTERM', () => {
     client.destroy();
     process.exit(0);
 });
+// Auto Nickname on Member Join
+client.on('guildMemberAdd', async (member) => {
+    const filePath = path.join(__dirname, 'autonick.json');
+
+    if (!fs.existsSync(filePath)) return;
+
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+
+    if (!data.format) return;
+
+    const newNick = data.format.replace('{username}', member.user.username);
+
+    try {
+        await member.setNickname(newNick);
+        console.log(`✅ Nickname set for ${member.user.username}`);
+    } catch (err) {
+        console.log(`❌ Failed to set nickname: ${err.message}`);
+    }
+});
 
 // Login to Discord
 client.login(process.env.DISCORD_BOT_TOKEN);
