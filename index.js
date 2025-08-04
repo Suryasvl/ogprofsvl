@@ -138,6 +138,40 @@ client.on('messageCreate', async message => {
 
     // Run moderation checks first
     await checkMessage(message);
+    // --- Custom AutoMod Checks (Links, Bad Words, Caps) ---
+    const badWords = ["fuck", "shit", "bitch", "idiot", "dumb"]; // Customize
+    const warnMessages = {
+      link: "🚫 Posting invite or suspicious links is not allowed!",
+      caps: "🧢 Please avoid using excessive capital letters.",
+      word: "❗ Watch your language. This is a respectful space."
+    };
+
+    const msgContent = message.content.toLowerCase();
+
+    // Link Detection (Invite / URL)
+    const linkRegex = /(https?:\/\/|discord\.gg|discordapp\.com\/invite)/gi;
+    if (linkRegex.test(message.content)) {
+      await message.delete().catch(() => {});
+      return message.channel.send({
+        content: `${message.author}, ${warnMessages.link}`
+      });
+    }
+
+    // Bad Words Detection
+    if (badWords.some(word => msgContent.includes(word))) {
+      await message.delete().catch(() => {});
+      return message.channel.send({
+        content: `${message.author}, ${warnMessages.word}`
+      });
+    }
+
+    // Excessive Caps (6 or more continuous caps)
+    if (/[A-Z]{6,}/.test(message.content)) {
+      await message.delete().catch(() => {});
+      return message.channel.send({
+        content: `${message.author}, ${warnMessages.caps}`
+      });
+    }
     // ✅ DND Mention Check
     try {
         const dndPath = path.join(__dirname, 'dnd.json');

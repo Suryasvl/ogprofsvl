@@ -1,56 +1,33 @@
 
-const { EmbedBuilder } = require('discord.js');
-const { moderationConfig } = require('../../moderation');
+// commands/prefix/automod.js
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
-    name: 'automod',
-    description: 'Configure auto-moderation settings',
-    usage: 'sautomod [enable/disable] [feature]',
-    
-    async execute(message, args) {
-        if (!message.member.permissions.has('Administrator')) {
-            return await message.reply('❌ You need administrator permission to use this command!');
-        }
+  name: "automod",
+  description: "Enable or disable AutoMod features.",
+  async execute(message, args) {
+    if (!message.member.permissions.has("Administrator"))
+      return message.reply("❌ You need `Administrator` permission.");
 
-        if (!args[0]) {
-            const embed = new EmbedBuilder()
-                .setColor(0x0099ff)
-                .setTitle('🛡️ Auto-Moderation Settings')
-                .addFields(
-                    { name: 'Anti-Link', value: moderationConfig.antiLink.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
-                    { name: 'Bad Words Filter', value: moderationConfig.badWords.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
-                    { name: 'Max Mentions', value: `${moderationConfig.automod.maxMentions}`, inline: true },
-                    { name: 'Caps Threshold', value: `${moderationConfig.automod.capsPercentage}%`, inline: true },
-                    { name: 'Spam Threshold', value: `${moderationConfig.automod.spamThreshold} msgs/10s`, inline: true }
-                )
-                .setFooter({ text: 'Use sautomod enable/disable [feature] to toggle features' })
-                .setTimestamp();
+    const dataPath = path.join(__dirname, "../../data/automod.json");
+    let config = {};
+    if (fs.existsSync(dataPath)) config = JSON.parse(fs.readFileSync(dataPath));
 
-            return await message.reply({ embeds: [embed] });
-        }
+    const guildId = message.guild.id;
 
-        const action = args[0].toLowerCase();
-        const feature = args[1]?.toLowerCase();
+    if (!args[0] || !["on", "off"].includes(args[0].toLowerCase()))
+      return message.reply("❗ Usage: `sautomod on` or `sautomod off`");
 
-        if (!['enable', 'disable'].includes(action)) {
-            return await message.reply('❌ Please use `enable` or `disable`');
-        }
+    config[guildId] = args[0].toLowerCase() === "on";
+    fs.writeFileSync(dataPath, JSON.stringify(config, null, 2));
 
-        const isEnabled = action === 'enable';
-
-        switch (feature) {
-            case 'antilink':
-            case 'links':
-                moderationConfig.antiLink.enabled = isEnabled;
-                await message.reply(`✅ Anti-link protection ${isEnabled ? 'enabled' : 'disabled'}`);
-                break;
-            case 'badwords':
-            case 'filter':
-                moderationConfig.badWords.enabled = isEnabled;
-                await message.reply(`✅ Bad words filter ${isEnabled ? 'enabled' : 'disabled'}`);
-                break;
-            default:
-                await message.reply('❌ Available features: `antilink`, `badwords`');
-        }
-    }
+    message.channel.send({
+      embeds: [{
+        title: "🔒 AutoMod Status",
+        description: `AutoMod has been **${config[guildId] ? "Enabled" : "Disabled"}** for this server.`,
+        color: config[guildId] ? 0x00ff00 : 0xff0000
+      }]
+    });
+  }
 };
