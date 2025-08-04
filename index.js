@@ -244,23 +244,82 @@ process.on('SIGTERM', () => {
     client.destroy();
     process.exit(0);
 });
-// Auto Nickname on Member Join
-client.on('guildMemberAdd', async (member) => {
-    const filePath = path.join(__dirname, 'autonick.json');
 
-    if (!fs.existsSync(filePath)) return;
-
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-
-    if (!data.format) return;
-
-    const newNick = data.format.replace('{username}', member.user.username);
-
+// Handle new member joins for auto features
+client.on('guildMemberAdd', async member => {
     try {
-        await member.setNickname(newNick);
-        console.log(`✅ Nickname set for ${member.user.username}`);
-    } catch (err) {
-        console.log(`❌ Failed to set nickname: ${err.message}`);
+        const guildId = member.guild.id;
+
+        // Auto Nickname
+        const autonickPath = path.join(__dirname, 'autonick.json');
+        if (fs.existsSync(autonickPath)) {
+            const autonickConfig = JSON.parse(fs.readFileSync(autonickPath, 'utf8'));
+            const settings = autonickConfig[guildId];
+
+            if (settings && settings.enabled && settings.format) {
+                let nickname = settings.format
+                    .replace('{displayname}', member.displayName)
+                    .replace('{username}', member.user.username)
+                    .replace('{tag}', member.user.discriminator);
+
+                try {
+                    await member.setNickname(nickname);
+                } catch (error) {
+                    console.error('Failed to set nickname:', error);
+                }
+            }
+        }
+
+        // Auto Role
+        const autoroleConfig = path.join(__dirname, 'autorole.json');
+        if (fs.existsSync(autoroleConfig)) {
+            const roleConfig = JSON.parse(fs.readFileSync(autoroleConfig, 'utf8'));
+            const settings = roleConfig[guildId];
+
+            if (settings && settings.enabled && settings.roleId) {
+                const role = member.guild.roles.cache.get(settings.roleId);
+                if (role) {
+                    try {
+                        await member.roles.add(role);
+                    } catch (error) {
+                        console.error('Failed to add role:', error);
+                    }
+                }
+            }
+        }
+
+        // Welcome Message
+        const welcomePath = path.join(__dirname, 'welcome.json');
+        if (fs.existsSync(welcomePath)) {
+            const welcomeConfig = JSON.parse(fs.readFileSync(welcomePath, 'utf8'));
+            const settings = welcomeConfig[guildId];
+
+            if (settings && settings.enabled && settings.channelId) {
+                const channel = member.guild.channels.cache.get(settings.channelId);
+                if (channel) {
+                    const { EmbedBuilder } = require('discord.js');
+
+                    const embed = new EmbedBuilder()
+                        .setTitle(settings.title || '🎉 Welcome!')
+                        .setDescription((settings.description || 'Welcome {user} to **{server}**! 🌟')
+                            .replace('{user}', member.user)
+                            .replace('{username}', member.user.username)
+                            .replace('{server}', member.guild.name))
+                        .setColor(settings.color || '#00ff00')
+                        .setThumbnail(member.user.displayAvatarURL())
+                        .setFooter({ text: `Member #${member.guild.memberCount}` })
+                        .setTimestamp();
+
+                    try {
+                        await channel.send({ embeds: [embed] });
+                    } catch (error) {
+                        console.error('Failed to send welcome message:', error);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error in guildMemberAdd event:', error);
     }
 });
 
